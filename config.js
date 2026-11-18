@@ -3,7 +3,7 @@
  * Pega aquí la URL de tu implementación de Apps Script (termina en /exec).
  */
 window.NUTRI_CONFIG = Object.freeze({
-  API_URL: '',
+  API_URL: 'https://script.google.com/macros/s/AKfycbxO5V5WBncIV5kqnF4k-vm0yBHHTOeBamCLwLBD_Q-pXHJ8oQAB4T2U0oBrsERgPF-d/exec',
   /* Aspecto de la pantalla de acceso: 'salvia' (predeterminada), 'marino', 'ciruela' o 'arena'. */
   LOGIN: { paleta: 'salvia' },
   /* Borradores automáticos de notas de consulta.
