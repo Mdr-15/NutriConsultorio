@@ -1,0 +1,23 @@
+require('fs').mkdirSync(__dirname+'/shots',{recursive:true});
+const {chromium}=require('playwright');const {spawn,execSync}=require('child_process');
+const ROOT=require('path').resolve(__dirname,'..'),PORT=8114,B='http://localhost:'+PORT,O=__dirname+'/shots/';
+let fails=0;const ok=(n,c,x='')=>{console.log((c?'OK   ':'FAIL ')+n+(c?'':'  -> '+x));if(!c)fails++;};
+(async()=>{
+  const srv=spawn('node',[__dirname+'/mock.js',ROOT,String(PORT)],{stdio:'ignore'});await new Promise(r=>setTimeout(r,800));
+ const br=await chromium.launch();const pg=await br.newPage({viewport:{width:1280,height:900}});const errs=[];pg.on('pageerror',e=>errs.push(e.message));pg.on('dialog',d=>d.accept());
+ await pg.goto(B+'/');await pg.fill('#lu','admin');await pg.fill('#lp','clave-segura-123');await pg.click('#lb');await pg.waitForSelector('#login',{state:'hidden'});
+ await pg.goto(B+'/#/expediente/PAC-0002/historia');await pg.waitForSelector('#antecedentesForm');
+ ok('7 campos abiertos, sin acordeones ni selectores',(await pg.$$eval('#antecedentesForm textarea',e=>e.length))===7&&(await pg.$$('#antecedentesForm details, #antecedentesForm select')).length===0);
+ ok('Contador 0 de 7',/0.*de 7/.test(await pg.textContent('.antecedents-summary')));
+ await pg.click('[data-a=ant-template]');ok('Formato de recordatorio insertado',/Desayuno:\nColación:/.test(await pg.inputValue('[name=recordatorio24h_detalle]')));
+ await pg.fill('[name=preferencias_detalle]','No come pescado');
+ await pg.fill('[name=historialPeso_detalle]','Habitual 70 kg, máximo 88 kg');
+ ok('Contador sube en vivo',/^3$|^2$/.test((await pg.textContent('#antCount')).trim()),await pg.textContent('#antCount'));
+ await pg.screenshot({path:O+'antecedentes.png',fullPage:true});
+ await pg.click('#saveAntecedentes');await pg.waitForSelector('.save-status.ok',{timeout:5000});
+ ok('Guardado con aviso fijo',/✓ Antecedentes guardados/.test(await pg.textContent('.save-status.ok')));
+ await pg.reload();await pg.waitForSelector('#antecedentesForm');
+ ok('Texto persiste al recargar',(await pg.inputValue('[name=historialPeso_detalle]')).includes('88 kg'));
+ ok('Sin errores JS',errs.length===0,errs.join('|'));
+ await br.close();srv.kill();process.exit(fails?1:0);
+})();
